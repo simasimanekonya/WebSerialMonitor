@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Serial Monitor (日本語対応)</title>
+</head>
+<body>
+  <h1>Web Serial Monitor (日本語対応)</h1>
+  <button id="connect">Connect to Serial</button>
+  <textarea id="output" cols="60" rows="20" readonly></textarea>
+  <input id="input" type="text" placeholder="ここにメッセージを入力">
+  <button id="send">Send</button>
+
+  <script>
+    const connectButton = document.getElementById('connect');
+    const sendButton = document.getElementById('send');
+    const output = document.getElementById('output');
+    const input = document.getElementById('input');
+
+    let port;
+    let writer;
+
+    connectButton.addEventListener('click', async () => {
+      try {
+        port = await navigator.serial.requestPort(); // シリアルポート選択
+        await port.open({ baudRate: 9600 }); // ボーレート設定
+        output.value += "シリアルポートに接続しました\n";
+
+        // リーダー設定
+        const reader = port.readable.getReader();
+        const decoder = new TextDecoder("utf-8"); // UTF-8対応デコーダ
+
+        // データ受信
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          output.value += decoder.decode(value); // 日本語対応
+        }
+      } catch (err) {
+        console.error(err);
+        output.value += `エラー: ${err.message}\n`;
+      }
+    });
+
+    sendButton.addEventListener('click', async () => {
+      const text = input.value + "\n";
+      input.value = '';
+      try {
+        const encoder = new TextEncoder(); // UTF-8エンコーダ
+        const data = encoder.encode(text);
+        await writer.write(data);
+        output.value += `送信: ${text}`;
+      } catch (err) {
+        console.error(err);
+        output.value += `エラー: ${err.message}\n`;
+      }
+    });
+  </script>
+</body>
+</html>
