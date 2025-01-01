@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Serial Monitor</title>
+</head>
+<body>
+  <h1>Web Serial Monitor</h1>
+  <button id="connect">Connect to Serial</button>
+  <textarea id="output" cols="60" rows="20" readonly></textarea>
+  <input id="input" type="text" placeholder="Type a message">
+  <button id="send">Send</button>
+
+  <script>
+    const connectButton = document.getElementById('connect');
+    const sendButton = document.getElementById('send');
+    const output = document.getElementById('output');
+    const input = document.getElementById('input');
+
+    let port;
+    let writer;
+
+    connectButton.addEventListener('click', async () => {
+      try {
+        port = await navigator.serial.requestPort(); 
+        await port.open({ baudRate: 9600 }); 
+        output.value += "Connected to serial port\n";
+
+        
+        const reader = port.readable.getReader();
+        writer = port.writable.getWriter();
+
+        
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          output.value += new TextDecoder().decode(value);
+        }
+      } catch (err) {
+        console.error(err);
+        output.value += `Error: ${err.message}\n`;
+      }
+    });
+
+    sendButton.addEventListener('click', async () => {
+      const text = input.value + "\n";
+      input.value = '';
+      try {
+        const data = new TextEncoder().encode(text);
+        await writer.write(data);
+        output.value += `Sent: ${text}`;
+      } catch (err) {
+        console.error(err);
+        output.value += `Error: ${err.message}\n`;
+      }
+    });
+  </script>
+</body>
+</html>
